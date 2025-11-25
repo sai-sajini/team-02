@@ -1,0 +1,266 @@
+OG prompt
+You are generating a fully working v0 prototype of an Agentic-AI powered procurement automation system using Python, Autogen framework, SQLite, and real LLM calls.
+Follow the instructions exactly. Produce clean, modular, production-ready code with real LLM prompts.
+
+📌 Project Overview
+
+Build a multi-agent procurement automation system with:
+
+procAI — Orchestrator (boss agent, event-driven, no LLM needed)
+
+invAI — Inventory reasoning
+
+conAI — Contract drafting
+
+negoAI — Negotiation agent
+
+riskAI — Risk analysis + mitigation suggestions
+
+All worker agents must use real LLM calls.
+Autogen must orchestrate agent conversations cleanly.
+
+📌 LLM Configuration (Required)
+
+Inside config.py, generate:
+
+from autogen import settings
+
+settings.OPENAI_API_KEY = "YOUR_API_KEY_HERE"
+
+LLM_CONFIG = {
+    "model": "gpt-4o-mini",
+    "temperature": 0.2,
+    "max_tokens": 700
+}
+
+
+All 4 worker agents must use this config.
+
+procAI does not need an LLM unless required.
+
+📌 Agent Design Requirements
+1. procAI (Boss Agent)
+
+Does not use LLM by default
+
+Controls the workflow
+
+Calls other agents sequentially
+
+Updates state
+
+Logs conversations
+
+Implements event-driven triggers
+
+2. invAI, conAI, negoAI, riskAI
+
+Each must:
+
+Be an AssistantAgent with LLM enabled
+
+Receive JSON context
+
+Produce structured JSON output
+
+Use high-quality prompt templates defined in /prompts/
+
+Log every message to SQLite
+
+📌 Prompt Templates (Required)
+
+Generate a folder:
+
+/prompts
+    inventory_prompt.txt
+    contract_prompt.txt
+    negotiation_prompt.txt
+    risk_prompt.txt
+
+
+Each file must contain a clear LLM instruction, e.g.:
+
+inventory_prompt.txt
+You are Inventory AI. You will analyze inventory table entries and decide:
+- if available quantity is sufficient
+- the recommended purchase quantity
+Respond ONLY in the following JSON format:
+{
+  "available": true/false,
+  "recommended_qty": number,
+  "reason": "short explanation"
+}
+
+contract_prompt.txt
+Draft a clean procurement contract for the following item, vendor details, and quantity.
+Include terms: payment, delivery, penalties, acceptance criteria.
+Return JSON:
+{
+  "contract_text": "string"
+}
+
+negotiation_prompt.txt
+Act as a negotiation expert. Based on vendor price and target price, propose negotiation steps.
+Return JSON:
+{
+  "vendor_price": number,
+  "counter_offer": number,
+  "requires_approval": true/false,
+  "summary": "string"
+}
+
+risk_prompt.txt
+You are Risk AI. Evaluate vendor rating, lead time, and contract terms.
+Return JSON:
+{
+  "risk_score": number,
+  "risk_level": "low/medium/high",
+  "mitigation_steps": ["...", "..."],
+  "requires_approval": true/false
+}
+
+📌 Order State Machine
+
+Implement OrderStateMachine with states:
+
+placed
+
+processing
+
+awaiting
+
+cancelled
+
+Allowed transitions:
+
+PLACED → PROCESSING
+PROCESSING → AWAITING / CANCELLED
+AWAITING → PROCESSING / CANCELLED
+
+
+Throw an error if invalid transition attempted.
+
+📌 SQLite Database
+
+Create schema:
+
+orders(id, item, qty, state, created_at)
+inventory(item, existing_qty, reserved_qty, issued_qty)
+vendors(id, name, rating, lead_time, price)
+documents(id, type, filepath)
+conversations(order_id, agent, message, timestamp)
+
+
+Seed synthetic data.
+
+Create helper functions:
+
+fetch_inventory(item)
+
+fetch_vendor(vendor_id)
+
+update_order_state(order_id, new_state)
+
+log_conversation(order_id, agent, message)
+
+get_order(order_id)
+
+📌 Event-Driven Orchestration Flow (Strict)
+
+The workflow must be:
+
+User creates order
+
+procAI sets state → placed → processing
+
+procAI → invAI
+
+procAI → conAI
+
+procAI → negoAI
+
+If negotiation requires approval → state = awaiting
+
+After approval → procAI → riskAI
+
+If risk mitigation requires approval → state = awaiting
+
+After approval → resume
+
+Complete order → Store final contract + negotiation summary
+
+📌 Conversation Logging
+
+All agent messages must be logged as:
+
+order_id
+agent_name
+message
+timestamp
+
+
+Use a reusable helper function.
+
+📌 Folder Structure
+/agentic_procurement_v0_llm
+    main.py
+    config.py
+    agents/
+        proc_ai.py
+        inv_ai.py
+        con_ai.py
+        nego_ai.py
+        risk_ai.py
+    core/
+        orchestrator.py
+        state_machine.py
+    db/
+        database.py
+        seed_data.py
+    prompts/
+        inventory_prompt.txt
+        contract_prompt.txt
+        negotiation_prompt.txt
+        risk_prompt.txt
+    utils/
+        helpers.py
+        logging_utils.py
+
+📌 Main Script (Demo Runner)
+
+In main.py, generate:
+
+Creating a new order
+
+Running the full event-driven flow
+
+Printing state transitions
+
+Printing agent outputs
+
+Logs saved in SQLite
+
+Approval steps simulated for v0
+
+📌 Coding Requirements
+
+Python 3.10+
+
+Autogen >= 0.3
+
+Use lightweight models like gpt-4o-mini
+
+Type hints everywhere
+
+Clean exceptions
+
+Return consistent JSON
+
+All prompts loaded from /prompts
+
+Everything should work end-to-end out of the box
+
+📌 Final Instruction
+
+Generate the complete project exactly as specified above, using real LLM-enabled agents with the Autogen framework, SQLite backend, prompt templates, and event-driven orchestration.
+Include all modules, scripts, prompts, and boilerplate.
